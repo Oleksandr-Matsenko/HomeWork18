@@ -45,15 +45,33 @@ extension MainModel: MainModelInput {
     }
     
     func loadData(for urlString: String, at indexPath: IndexPath) {
-        
         guard let url = URL(string: urlString) else { return }
         
-        if let data = try? Data(contentsOf: url) {
+        let task = URLSession.shared.dataTask(with: url) { [weak self] (data, response, error) in
+            guard let self = self else { return }
             
-            dataService.write(image: data, for: urlString)
-            output.imageDataDidLoad(for: indexPath)
+            if let error = error {
+                // Handle error
+                print("Error loading image data: \(error)")
+                return
+            }
+            
+            guard let data = data else {
+                // Handle missing data
+                print("No data received")
+                return
+            }
+            
+            // Data loaded successfully
+            DispatchQueue.main.async {
+                self.dataService.write(image: data, for: urlString)
+                self.output.imageDataDidLoad(for: indexPath)
+            }
         }
+        
+        task.resume()
     }
+
 }
 
 // MARK: - Private
